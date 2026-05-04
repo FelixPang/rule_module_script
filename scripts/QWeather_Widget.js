@@ -32,12 +32,11 @@ export default async function(ctx) {
   try {
     const place = await resolveLocation(ctx, apiHost, key, locationInput, lang);
     const now = await fetchNow(ctx, apiHost, key, place.location, lang, unit);
-    const daily = await fetchDaily(ctx, apiHost, key, place.location, lang, unit);
     const air = await fetchAirSafely(ctx, apiHost, key, place, lang);
 
     if (isAccessoryFamily(family)) return renderAccessory(now, place.name);
     if (family === 'systemSmall') return renderSmall(now, place.name);
-    return renderMedium(now, daily, air, place.name);
+    return renderMedium(now, air, place.name);
   } catch (err) {
     return renderError(`请求失败：${String(err.message || err).slice(0, 64)}`);
   }
@@ -79,13 +78,6 @@ async function fetchNow(ctx, host, key, location, lang, unit) {
   return data.now;
 }
 
-async function fetchDaily(ctx, host, key, location, lang, unit) {
-  const url = `${host}/v7/weather/3d?location=${encodeURIComponent(location)}&key=${encodeURIComponent(key)}&lang=${encodeURIComponent(lang)}&unit=${encodeURIComponent(unit)}`;
-  const data = await getJSON(ctx, url, 8000);
-  if (data.code !== '200' || !data.daily) return [];
-  return data.daily.slice(0, 3);
-}
-
 async function fetchAirSafely(ctx, host, key, place, lang) {
   if (!place.lon || !place.lat) return null;
   try {
@@ -113,7 +105,7 @@ async function getJSON(ctx, url, timeout) {
   throw new Error('接口响应格式异常');
 }
 
-function renderMedium(now, daily, air, city) {
+function renderMedium(now, air, city) {
   const icon = weatherSymbol(now.icon);
   const iconColor = weatherColor(now.icon);
   const updateTime = formatTime(now.obsTime);
@@ -175,13 +167,7 @@ function renderMedium(now, daily, air, city) {
           createMetric('wind', '风向', `${now.windDir || '--'} ${now.windScale || '--'}级`, '#5856D6'),
           createMetric('gauge.medium', '风速', `${now.windSpeed || '--'}km/h`, '#FF9500')
         ]
-      },
-      daily.length ? {
-        type: 'stack',
-        direction: 'row',
-        gap: 8,
-        children: daily.map(day => createForecast(day))
-      } : { type: 'spacer' }
+      }
     ]
   };
 }
@@ -253,22 +239,6 @@ function createMiniMetric(icon, label, value, color) {
       { type: 'image', src: `sf-symbol:${icon}`, width: 20, height: 20, color: { light: color, dark: color } },
       { type: 'text', text: label, font: { size: 10 }, textColor: { light: '#7A7F87', dark: '#A0A4AD' } },
       { type: 'text', text: value, font: { size: 13, weight: 'semibold' }, textColor: { light: '#111111', dark: '#FFFFFF' } }
-    ]
-  };
-}
-
-function createForecast(day) {
-  const label = day.fxDate ? day.fxDate.slice(5).replace('-', '/') : '--';
-  return {
-    type: 'stack',
-    direction: 'column',
-    alignItems: 'center',
-    flex: 1,
-    gap: 3,
-    children: [
-      { type: 'text', text: label, font: { size: 10 }, textColor: { light: '#7A7F87', dark: '#A0A4AD' } },
-      { type: 'image', src: `sf-symbol:${weatherSymbol(day.iconDay)}`, width: 20, height: 20, color: weatherColor(day.iconDay) },
-      { type: 'text', text: `${day.tempMin}°/${day.tempMax}°`, font: { size: 12, weight: 'semibold' }, textColor: { light: '#111111', dark: '#FFFFFF' }, lineLimit: 1 }
     ]
   };
 }
