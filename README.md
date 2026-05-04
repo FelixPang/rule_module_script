@@ -1,0 +1,2 @@
+# Egern-Config
+EgernConfig
