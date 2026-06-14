@@ -22,12 +22,11 @@ const FONT_SIZE = {
 };
 
 const MATCH_GRID_WIDTH = {
-  date: 42,
+  date: 38,
   time: 36,
-  status: 36,
-  home: 62,
+  home: 72,
   score: 28,
-  away: 74,
+  away: 88,
 };
 
 const TEAM_DATA = {
@@ -674,8 +673,8 @@ function dayCard(day, limit) {
     type: 'stack',
     direction: 'row',
     alignItems: 'center',
-    gap: 6,
-    padding: [7, 8, 7, 8],
+    gap: 4,
+    padding: [7, 6, 7, 6],
     backgroundColor: COLORS.card,
     borderRadius: 8,
     children: [
@@ -803,18 +802,7 @@ function cardMatchRow(match) {
     alignItems: 'center',
     gap: 3,
     children: [
-      rowCell(formatTime(match.kickoff), {
-        width: MATCH_GRID_WIDTH.time,
-        font: matchFont('medium', 'Menlo'),
-        color: match.status === 'live' ? COLORS.live : COLORS.muted,
-        align: 'left',
-      }),
-      rowCell(matchStatusLine(match), {
-        width: MATCH_GRID_WIDTH.status,
-        font: matchFont('bold'),
-        color: statusColor(match),
-        align: 'left',
-      }),
+      timeStatusCell(match),
       rowCell(homeDisplay(match), {
         width: MATCH_GRID_WIDTH.home,
         font: matchFont('semibold'),
@@ -833,6 +821,33 @@ function cardMatchRow(match) {
         color: COLORS.text,
         align: 'left',
       }),
+    ],
+  };
+}
+
+function timeStatusCell(match) {
+  return {
+    type: 'stack',
+    direction: 'column',
+    width: MATCH_GRID_WIDTH.time,
+    gap: 0,
+    children: [
+      {
+        type: 'text',
+        text: formatTime(match.kickoff),
+        font: matchFont('medium', 'Menlo'),
+        textColor: match.status === 'live' ? COLORS.live : COLORS.muted,
+        maxLines: 1,
+        minScale: 0.7,
+      },
+      {
+        type: 'text',
+        text: matchStatusLine(match),
+        font: { size: 8, weight: 'bold' },
+        textColor: statusColor(match),
+        maxLines: 1,
+        minScale: 0.6,
+      },
     ],
   };
 }
