@@ -14,6 +14,14 @@ const COLORS = {
   error: { light: '#D70015', dark: '#FF453A' },
 };
 
+const FONT_SIZE = {
+  header: 14,
+  headerMeta: 11,
+  dayTitle: 14,
+  dayCount: 12,
+  match: 11,
+};
+
 const TEAM_DATA = {
   ALB: team('阿尔巴尼亚', 'AL', ['Albania']),
   ALG: team('阿尔及利亚', 'DZ', ['Algeria']),
@@ -571,7 +579,7 @@ function renderLarge(days, state, now) {
     children.push(daySection(day, 4));
   });
 
-  return shell(now, state, children, 16);
+  return shell(now, state, children, 14);
 }
 
 function shell(now, state, children, padding) {
@@ -592,7 +600,7 @@ function shell(now, state, children, padding) {
     type: 'widget',
     refreshAfter: nextRefresh(now),
     padding,
-    gap: 10,
+    gap: 7,
     backgroundColor: COLORS.background,
     children: body,
   };
@@ -609,13 +617,13 @@ function header(title, now) {
         type: 'image',
         src: 'sf-symbol:trophy.fill',
         color: COLORS.trophy,
-        width: 13,
-        height: 13,
+        width: 12,
+        height: 12,
       },
       {
         type: 'text',
         text: title,
-        font: { size: 16, weight: 'bold' },
+        font: { size: FONT_SIZE.header, weight: 'bold' },
         textColor: COLORS.text,
         maxLines: 1,
         minScale: 0.75,
@@ -624,7 +632,7 @@ function header(title, now) {
       {
         type: 'text',
         text: '更新 ' + formatTime(now),
-        font: { size: 12, weight: 'medium' },
+        font: { size: FONT_SIZE.headerMeta, weight: 'medium' },
         textColor: COLORS.muted,
         maxLines: 1,
         minScale: 0.65,
@@ -637,7 +645,7 @@ function dayColumn(day, limit) {
   return {
     type: 'stack',
     direction: 'column',
-    gap: 6,
+    gap: 5,
     flex: 1,
     padding: [8, 8, 8, 8],
     backgroundColor: COLORS.card,
@@ -646,7 +654,7 @@ function dayColumn(day, limit) {
       {
         type: 'text',
         text: day.title + ' ' + day.dateLabel,
-        font: { size: 16, weight: 'bold' },
+        font: { size: FONT_SIZE.dayTitle, weight: 'bold' },
         textColor: COLORS.text,
         maxLines: 1,
       },
@@ -658,8 +666,8 @@ function daySection(day, limit) {
   return {
     type: 'stack',
     direction: 'column',
-    gap: 6,
-    padding: [9, 10, 9, 10],
+    gap: 4,
+    padding: [8, 10, 8, 10],
     backgroundColor: COLORS.card,
     borderRadius: 8,
     children: [
@@ -671,14 +679,14 @@ function daySection(day, limit) {
           {
             type: 'text',
             text: day.title + ' ' + day.dateLabel,
-            font: { size: 16, weight: 'bold' },
+            font: { size: FONT_SIZE.dayTitle, weight: 'bold' },
             textColor: COLORS.text,
           },
           { type: 'spacer' },
           {
             type: 'text',
             text: day.matches.length + ' 场',
-            font: { size: 13, weight: 'medium' },
+            font: { size: FONT_SIZE.dayCount, weight: 'medium' },
             textColor: COLORS.muted,
           },
         ],
@@ -699,7 +707,7 @@ function matchRows(matches, limit, showTime) {
     rows.push({
       type: 'text',
       text: '暂无比赛',
-      font: { size: 12, weight: 'regular' },
+      font: { size: FONT_SIZE.match, weight: 'regular' },
       textColor: COLORS.faint,
       maxLines: 1,
     });
@@ -707,7 +715,7 @@ function matchRows(matches, limit, showTime) {
     rows.push({
       type: 'text',
       text: '另有 ' + (matches.length - limit) + ' 场',
-      font: { size: 12, weight: 'medium' },
+      font: { size: FONT_SIZE.match, weight: 'medium' },
       textColor: COLORS.faint,
       maxLines: 1,
     });
@@ -721,7 +729,7 @@ function matchRow(match, showTime) {
     type: 'stack',
     direction: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: 4,
     children: [
       {
         type: 'text',
@@ -753,7 +761,7 @@ function matchRow(match, showTime) {
 }
 
 function matchFont(weight, family) {
-  const font = { size: 12, weight };
+  const font = { size: FONT_SIZE.match, weight };
   if (family) font.family = family;
   return font;
 }
