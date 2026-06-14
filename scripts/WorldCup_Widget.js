@@ -184,6 +184,7 @@ function buildApiUrl(env, now) {
   const from = addDays(now, -1);
   const to = addDays(now, 1);
   const footballDataFrom = addDays(now, -2);
+  const competitionCode = encodeURIComponent(String(env.COMPETITION_CODE || 'WC').trim() || 'WC');
   const values = {
     dates: compactDay(from) + '-' + compactDay(to),
     dateFrom: dayKey(from),
@@ -202,7 +203,7 @@ function buildApiUrl(env, now) {
   }
 
   if (isFootballDataSource(env) && !env.API_URL) {
-    return 'https://api.football-data.org/v4/competitions/WC/matches?dateFrom=' + values.footballDataDateFrom + '&dateTo=' + values.footballDataDateTo;
+    return 'https://api.football-data.org/v4/competitions/' + competitionCode + '/matches?dateFrom=' + values.footballDataDateFrom + '&dateTo=' + values.footballDataDateTo;
   }
 
   if (isEspnSource(env) && env.API_URL.indexOf('dates=') < 0) {

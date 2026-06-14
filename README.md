@@ -8,12 +8,13 @@ Egern configuration snippets and JavaScript widgets.
 
 - Script: `scripts/WorldCup_Widget.js`
 - Config snippet: `configs/WorldCup_Widget.yaml`
-- Data source: football-data.org
+- Data source: football-data.org FIFA World Cup (`WC`)
 
 Required widget env:
 
 ```yaml
 DATA_SOURCE: "football-data"
+COMPETITION_CODE: "WC"
 API_KEY: "your football-data.org token"
 ```
 
