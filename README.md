@@ -1,6 +1,6 @@
-# Egern Config
+# rule_module_script
 
-Egern configuration snippets and JavaScript widgets.
+Egern and Surge rules, modules, and scripts.
 
 ## Widgets
 
@@ -8,7 +8,7 @@ Egern configuration snippets and JavaScript widgets.
 
 - Script: `scripts/WorldCup_Widget.js`
 - Config snippet: `configs/WorldCup_Widget.yaml`
-- Surge module: `configs/WorldCup_Surge.sgmodule`
+- Surge module: `surge/module/WorldCup_Surge.sgmodule`
 - Data source: ESPN FIFA World Cup (`fifa.world`)
 
 Default widget env:
@@ -22,7 +22,7 @@ The widget shows yesterday, today, and tomorrow in Beijing time. The default ESP
 Surge panel module:
 
 ```text
-https://raw.githubusercontent.com/FelixPang/ProxyKit/main/configs/WorldCup_Surge.sgmodule
+https://raw.githubusercontent.com/FelixPang/rule_module_script/main/surge/module/WorldCup_Surge.sgmodule
 ```
 
 ### QWeather
