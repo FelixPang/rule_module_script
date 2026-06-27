@@ -239,14 +239,13 @@ function statusOf(data) {
   return { label: 'ACTIVE', color: C.ok };
 }
 
-function formatBytes(bytes, decimals = 1) {
+function formatBytes(bytes, decimals = 2) {
   if (!Number.isFinite(bytes)) return '不限量';
   if (bytes <= 0) return '0 B';
   const units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
   const index = Math.min(units.length - 1, Math.floor(Math.log(bytes) / Math.log(1024)));
   const value = bytes / (1024 ** index);
-  const digits = value >= 100 ? 0 : value >= 10 ? Math.min(1, decimals) : decimals;
-  return `${value.toFixed(digits)} ${units[index]}`;
+  return `${value.toFixed(decimals)} ${units[index]}`;
 }
 
 function formatDate(timestamp) {
