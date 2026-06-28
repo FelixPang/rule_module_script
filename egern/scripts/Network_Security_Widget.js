@@ -8,10 +8,11 @@
  *   REFRESH_MINUTES=10
  */
 
-const RULE_STATS_KEY = 'egern.rule-shield.stats.v1';
 const TRACE_URL = 'https://www.cloudflare.com/cdn-cgi/trace';
 const CAPTIVE_URL = 'https://cp.cloudflare.com/generate_204';
 const IPV6_URL = 'https://api6.ipify.org?format=json';
+const DNS_LEAK_DOMAIN = 'edns.ip-api.com';
+const PUBLIC_DNS_PATTERN = /cloudflare|google|quad9|nextdns|adguard|control\s*d|opendns|cisco|dnspod|alidns|alibaba|tencent|114dns|cleanbrowsing|mullvad|dns0|verisign/i;
 
 const C = {
   bg:       { light: '#FFFFFF', dark: '#050506' },
@@ -103,18 +104,96 @@ function maskIp(ip) {
   return parts.length === 4 ? `${parts[0]}.${parts[1]}.•••.${parts[3]}` : ip;
 }
 
-function filterCheck(ctx) {
-  const stats = ctx.storage?.getJSON(RULE_STATS_KEY);
-  if (!stats || !Number(stats.totalRequests)) {
-    return check('filter', '规则过滤', '未连接', 'unknown', '未读取到规则防护统计');
+function randomToken(length = 32) {
+  let value = '';
+  while (value.length < length) {
+    value += Math.random().toString(36).slice(2);
   }
-  return check(
-    'filter',
-    '规则过滤',
-    '运行中',
-    'pass',
-    `今日检查 ${Number(stats.totalRequests) || 0} 次，拦截 ${Number(stats.blocked) || 0} 次`
-  );
+  return value.slice(0, length);
+}
+
+async function dnsLeakProbe(ctx) {
+  try {
+    const hostname = `${randomToken()}.${DNS_LEAK_DOMAIN}`;
+    const response = await ctx.http.get(`https://${hostname}/json`, {
+      timeout: 6500,
+      redirect: 'follow'
+    });
+    const data = await response.json();
+    const resolverIp = String(data?.dns?.ip || '').trim();
+    if (!resolverIp) return { ok: false };
+    return {
+      ok: true,
+      resolverIp,
+      resolverGeo: String(data?.dns?.geo || '').trim(),
+      clientSubnet: String(data?.edns?.ip || '').trim(),
+      clientGeo: String(data?.edns?.geo || '').trim()
+    };
+  } catch {
+    return { ok: false };
+  }
+}
+
+function lookupIp(ctx, ip) {
+  if (!ip || typeof ctx.lookupIP !== 'function') return {};
+  try {
+    return ctx.lookupIP(ip) || {};
+  } catch {
+    return {};
+  }
+}
+
+function asnNumber(info) {
+  const value = Number(info?.asn);
+  return Number.isFinite(value) && value > 0 ? value : 0;
+}
+
+function sameAsn(left, right) {
+  const leftAsn = asnNumber(left);
+  return leftAsn > 0 && leftAsn === asnNumber(right);
+}
+
+function sameIpPrefix(left, right) {
+  if (!left || !right) return false;
+  if (left.includes('.') && right.includes('.')) {
+    return left.split('.').slice(0, 3).join('.') === right.split('.').slice(0, 3).join('.');
+  }
+  if (left.includes(':') && right.includes(':')) {
+    return left.split(':').slice(0, 4).join(':') === right.split(':').slice(0, 4).join(':');
+  }
+  return false;
+}
+
+function dnsLeakCheck(ctx, probe, egress, direct) {
+  if (!probe.ok) {
+    return check('dns', 'DNS 泄漏', '待确认', 'unknown', 'DNS 泄漏探针未返回解析器信息');
+  }
+
+  const resolver = lookupIp(ctx, probe.resolverIp);
+  const egressInfo = lookupIp(ctx, egress.data.ip);
+  const directInfo = lookupIp(ctx, direct.data.ip);
+  const resolverName = String(resolver.organization || probe.resolverGeo || '').trim();
+  const resolverLabel = resolverName || maskIp(probe.resolverIp);
+  const isolated = egress.ok && direct.ok && egress.data.ip !== direct.data.ip;
+
+  if (isolated &&
+      probe.clientSubnet &&
+      sameIpPrefix(probe.clientSubnet, direct.data.ip) &&
+      !sameIpPrefix(probe.clientSubnet, egress.data.ip)) {
+    return check('dns', 'DNS 泄漏', 'ECS 暴露', 'warn', `DNS 暴露直连网段 · ${probe.clientGeo || probe.clientSubnet}`);
+  }
+
+  if (isolated &&
+      sameAsn(resolver, directInfo) &&
+      !sameAsn(resolver, egressInfo)) {
+    return check('dns', 'DNS 泄漏', '疑似泄漏', 'warn', `解析器属于直连网络 · ${resolverLabel}`);
+  }
+
+  if (sameAsn(resolver, egressInfo) || PUBLIC_DNS_PATTERN.test(resolverName)) {
+    return check('dns', 'DNS 泄漏', '未发现', 'pass', `解析器 ${resolverLabel} · ${maskIp(probe.resolverIp)}`);
+  }
+
+  return check('dns', 'DNS 泄漏', '待确认', 'unknown', `无法确认解析器归属 · ${resolverLabel}`);
 }
 
 function tunnelCheck(egress, direct, forcedPolicy) {
@@ -154,12 +233,13 @@ function ipv6Check(egressV6, directV6, tunnel) {
 
 async function loadSecurity(ctx) {
   const policy = String(ctx.env?.MONITOR_POLICY || '').trim();
-  const [egress, direct, captive, egressV6, directV6] = await Promise.all([
+  const [egress, direct, captive, egressV6, directV6, dnsProbe] = await Promise.all([
     trace(ctx, policy),
     trace(ctx, 'DIRECT'),
     captiveCheck(ctx, policy),
     ipv6Address(ctx, policy),
-    ipv6Address(ctx, 'DIRECT')
+    ipv6Address(ctx, 'DIRECT'),
+    dnsLeakProbe(ctx)
   ]);
 
   const tunnel = tunnelCheck(egress, direct, policy);
@@ -168,7 +248,7 @@ async function loadSecurity(ctx) {
     tlsCheck(egress),
     portalCheck(captive),
     ipv6Check(egressV6, directV6, tunnel),
-    filterCheck(ctx)
+    dnsLeakCheck(ctx, dnsProbe, egress, direct)
   ];
   const passed = checks.filter(item => item.state === 'pass').length;
   const warnings = checks.filter(item => item.state === 'warn').length;
@@ -266,10 +346,10 @@ function mediumWidget(data, ctx) {
   const refreshMinutes = numberEnv(ctx, 'REFRESH_MINUTES', 10, 5, 60);
   const ip = showIp ? data.publicIp || '--' : maskIp(data.publicIp);
   const portal = data.checks[2];
-  const filter = data.checks[4];
-  const secondaryColor = [portal, filter].some(item => item.state === 'fail')
+  const dnsLeak = data.checks[4];
+  const secondaryColor = [portal, dnsLeak].some(item => item.state === 'fail')
     ? C.fail
-    : [portal, filter].some(item => item.state === 'warn')
+    : [portal, dnsLeak].some(item => item.state === 'warn')
       ? C.warn
       : C.dim;
   return {
@@ -325,8 +405,8 @@ function mediumWidget(data, ctx) {
         direction: 'row',
         alignItems: 'center',
         children: [
-          text(`门户 ${portal.value} · 过滤 ${filter.value}`, 9, secondaryColor, 'medium', { flex: 1 }),
-          text(`DNS ${data.dnsCount}`, 9, C.dim, 'semibold')
+          text(`门户 ${portal.value} · DNS ${dnsLeak.value}`, 9, secondaryColor, 'medium', { flex: 1 }),
+          text(`解析器 ${data.dnsCount}`, 9, C.dim, 'semibold')
         ]
       }
     ]
@@ -361,7 +441,7 @@ function detailRow(item) {
     tls: 'lock.shield',
     portal: 'rectangle.connected.to.line.below',
     ipv6: 'network',
-    filter: 'shield.lefthalf.filled'
+    dns: 'network'
   };
   return {
     type: 'stack',
