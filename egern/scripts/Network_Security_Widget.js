@@ -406,7 +406,7 @@ function mediumWidget(data, ctx) {
         alignItems: 'center',
         children: [
           text(`${tls.value} · 门户 ${portal.value}`, 9, secondaryColor, 'medium', { flex: 1 }),
-          text(`解析器 ${data.dnsCount}`, 9, C.dim, 'semibold')
+          text(`DNS ${data.dnsCount}`, 9, C.dim, 'semibold')
         ]
       }
     ]
