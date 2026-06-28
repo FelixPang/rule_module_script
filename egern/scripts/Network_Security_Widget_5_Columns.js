@@ -360,19 +360,19 @@ function primaryCheckItem(item) {
     type: 'stack',
     direction: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 7,
     flex: 1,
     children: [
       {
         type: 'stack',
         direction: 'row',
         alignItems: 'center',
-        width: 30,
-        height: 30,
-        padding: 7,
+        width: 24,
+        height: 24,
+        padding: 5.5,
         backgroundColor: C.accentSoft,
-        borderRadius: 15,
-        children: [icon(checkSymbol(item.id), symbolColor, 16)]
+        borderRadius: 12,
+        children: [icon(checkSymbol(item.id), symbolColor, 13)]
       },
       {
         type: 'stack',
@@ -487,9 +487,9 @@ function mediumWidget(data, ctx) {
         gap: 8,
         children: [
           primaryCheckItem(primaryChecks[0]),
-          verticalDivider(30),
+          verticalDivider(24),
           primaryCheckItem(primaryChecks[1]),
-          verticalDivider(30),
+          verticalDivider(24),
           primaryCheckItem(primaryChecks[2])
         ]
       },
