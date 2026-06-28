@@ -262,6 +262,7 @@ function mainWidget(m, isLarge) {
         children: [
           { type: 'image', src: `sf-symbol:${m.display.icon}`, color: m.display.color, width: 15, height: 15 },
           { type: 'text', text: m.title, font: { size: 12, weight: 'heavy', family: 'Menlo' }, textColor: C.muted, maxLines: 1 },
+          { type: 'spacer' },
           statusBadge(m),
         ],
       },
